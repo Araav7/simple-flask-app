@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Simple Async Example</h1>
+<p>This example shows how async operations work in Flask and how they appear in Datadog traces.</p>
+
+<div class="demo-card">
+    <h3>🚀 Parallel API Calls Demo</h3>
+    <p><strong>What it does:</strong></p>
+    <ul>
+        <li>Fetches a message from GitHub API</li>
+        <li>Generates a random programming quote</li>
+        <li>Both operations run <strong>at the same time</strong> (in parallel)</li>
+    </ul>
+    
+    <p><strong>Why it's cool:</strong></p>
+    <ul>
+        <li>Without async: Would take 2 seconds (1 second + 1 second)</li>
+        <li>With async: Takes only ~1 second (both run simultaneously)</li>
+    </ul>
+    
+    <button onclick="testAsync()" id="testBtn">Test Async Operation</button>
+    
+    <div id="loading" style="display: none;">
+        <p class="loading-text">⏱️ Running async operations in parallel...</p>
+    </div>
+    
+    <div id="result" style="display: none;">
+        <h4>Results:</h4>
+        <pre id="result-content"></pre>
+    </div>
+    
+    <div class="info-box">
+        <h4>📊 What to look for in Datadog:</h4>
+        <ol>
+            <li>Look for the trace named <code>async_example.main</code></li>
+            <li>You'll see two child spans: <code>fetch.github_zen</code> and <code>fetch.random_quote</code></li>
+            <li>Notice they run in parallel (overlapping time ranges)</li>
+            <li>Check the total duration - it's about 1 second, not 2!</li>
+        </ol>
+    </div>
+</div>
+
+<style>
+    .demo-card {
+        border: 2px solid #007bff;
+        padding: 20px;
+        border-radius: 10px;
+        background: #f8f9fa;
+        max-width: 800px;
+        margin: 20px auto;
+    }
+    
+    .demo-card h3 {
+        color: #007bff;
+        margin-top: 0;
+    }
+    
+    button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 20px 0;
+    }
+    
+    button:hover {
+        background: #0056b3;
+    }
+    
+    button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+    
+    .loading-text {
+        color: #007bff;
+        font-size: 18px;
+        animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+    }
+    
+    #result {
+        margin-top: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+    }
+    
+    #result h4 {
+        margin-top: 0;
+        color: #28a745;
+    }
+    
+    pre {
+        background: #f4f4f4;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .info-box {
+        margin-top: 30px;
+        padding: 15px;
+        background: #e7f3ff;
+        border-left: 4px solid #007bff;
+        border-radius: 5px;
+    }
+    
+    .info-box h4 {
+        margin-top: 0;
+        color: #004085;
+    }
+    
+    .info-box ol {
+        margin-bottom: 0;
+    }
+    
+    .info-box code {
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        color: #e83e8c;
+    }
+    
+    ul {
+        line-height: 1.8;
+    }
+</style>
+
+<script>
+async function testAsync() {
+    const button = document.getElementById('testBtn');
+    const loading = document.getElementById('loading');
+    const resultDiv = document.getElementById('result');
+    const resultContent = document.getElementById('result-content');
+    
+    // Disable button and show loading
+    button.disabled = true;
+    loading.style.display = 'block';
+    resultDiv.style.display = 'none';
+    
+    try {
+        // Record start time
+        const startTime = performance.now();
+        
+        // Make the async request
+        const response = await fetch('/async-example');
+        const data = await response.json();
+        
+        // Calculate frontend time
+        const endTime = performance.now();
+        const clientTime = ((endTime - startTime) / 1000).toFixed(2);
+        
+        // Add client timing to the result
+        data.client_time_seconds = clientTime;
+        
+        // Display the result
+        resultContent.textContent = JSON.stringify(data, null, 2);
+        resultDiv.style.display = 'block';
+        
+    } catch (error) {
+        resultContent.textContent = 'Error: ' + error.message;
+        resultDiv.style.display = 'block';
+    } finally {
+        // Re-enable button and hide loading
+        button.disabled = false;
+        loading.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
